@@ -1,6 +1,7 @@
 import requests
 import pprint
 from statistics import mean
+from itertools import count
 
 
 def predict_rub_salary(vacancy):
@@ -65,7 +66,7 @@ for language in languages:
     response.raise_for_status()
 
     vacancy_salaries = []
-    for vacancy in response.json()['items']:
+    for vacancy in fetch_records(language):
         vacancy_salaries.append(predict_rub_salary(vacancy))
 
     vacancy_salaries_wo_none = list(filter(None, vacancy_salaries))
