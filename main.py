@@ -18,11 +18,13 @@ def predict_rub_salary_hh(vacancy):
         return None
     return predict_salary(salary['from'], salary['to'])
 
+
 def predict_rub_salary_sj(vacancy):
     if vacancy['payment_from'] == 0 and vacancy['payment_to'] == 0:
         return None
     else:
         return predict_salary(vacancy['payment_from'], vacancy['payment_to'])
+
 
 def fetch_vacancies_hh(language):
     for page in count():
@@ -56,90 +58,95 @@ def fetch_vacancies_sj(language):
             'keywords[1][skwc]': 'and',
             'page': page
         }
-        page_response = requests.get(url_sj, params=payload, headers=headers)
+        page_response = requests.get(url_sj, params=payload, headers=headers_sj)
         page_response.raise_for_status()
         page_data = page_response.json()
         yield from page_data['objects']
         if not page_data['more']:
             break
 
-languages = [
-    'JavaScript',
-    'Java',
-    'Python',
-    'Ruby',
-    'PHP',
-    'C++',
-    'C#',
-    'C',
-    'Go',
-    'Objective-C',
-    'Scala',
-    'Swift',
-    'TypeScript',
-]
 
-languages_popularity_hh = {}
+def get_languages_popularity_hh(languages):
+    languages_popularity = {}
+    for language in languages:
+        print(language)
+        payload = {
+            'text': 'Программист {}'.format(language),
+            'search_field': 'name',
+            'area': 1,
+            'period': 30
+        }
+        response = requests.get(url_hh, params=payload)
+        response.raise_for_status()
+        vacancy_salaries = []
+        for vacancy in fetch_vacancies_hh(language):
+            vacancy_salaries.append(predict_rub_salary_hh(vacancy))
+        vacancy_salaries_wo_none = list(filter(None, vacancy_salaries))
+        languages_popularity[language] = {
+            'vacancies_found': response.json()['found'],
+            'vacancies_processed': len(vacancy_salaries_wo_none),
+            'average_salary': int(mean(vacancy_salaries_wo_none))
+        }
+    return languages_popularity
 
-for language in languages:
-    print(language)
-    payload = {
-        'text': 'Программист {}'.format(language),
-        'search_field': 'name',
-        'area': 1,
-        'period': 30
+
+def get_languages_popularity_sj(languages):
+    languages_popularity = {}
+    for language in languages:
+        payload = {
+            'town': '4',
+            'catalogues': '48',
+            'keywords[0][keys]': 'Программист',
+            'keywords[0][srws]': 1,
+            'keywords[1][keys]': language,
+            'keywords[1][srws]': 1,
+            'keywords[1][skwc]': 'and',
+        }
+        response = requests.get(url_sj, params=payload, headers=headers_sj)
+        response.raise_for_status()
+
+        vacancy_salaries = []
+        for vacancy in fetch_vacancies_sj(language):
+            vacancy_salaries.append(predict_rub_salary_sj(vacancy))
+        vacancy_salaries_wo_none = list(filter(None, vacancy_salaries))
+        if vacancy_salaries_wo_none:
+            mean_salary = int(mean(vacancy_salaries_wo_none))
+        else:
+            mean_salary = None
+        languages_popularity[language] = {
+            'vacancies_found': response.json()['total'],
+            'vacancies_processed': len(vacancy_salaries_wo_none),
+            'average_salary': mean_salary
+        }
+
+    return languages_popularity
+
+
+if __name__ == '__main__':
+    languages = [
+        'JavaScript',
+        'Java',
+        'Python',
+        'Ruby',
+        'PHP',
+        'C++',
+        'C#',
+        'C',
+        'Go',
+        'Objective-C',
+        'Scala',
+        'Swift',
+        'TypeScript',
+    ]
+
+    headers_sj = {
+        'X-Api-App-Id':
+            'v3.r.132228763.49539bb63c4ceef06bdbfbd37374931114a7ef2f.9a1749bd9364951dfa0e2e5fbe7602c0e58109f3'
     }
-    response = requests.get('https://api.hh.ru/vacancies', params=payload)
-    response.raise_for_status()
 
-    vacancy_salaries = []
-    for vacancy in fetch_vacancies_hh(language):
-        vacancy_salaries.append(predict_rub_salary_hh(vacancy))
+    url_sj = 'https://api.superjob.ru/2.0/vacancies/'
+    url_hh = 'https://api.hh.ru/vacancies'
 
-    vacancy_salaries_wo_none = list(filter(None, vacancy_salaries))
-    languages_popularity_hh[language] = {
-        'vacancies_found': response.json()['found'],
-        'vacancies_processed': len(vacancy_salaries_wo_none),
-        'average_salary': int(mean(vacancy_salaries_wo_none))
-    }
+    pprint.pprint(get_languages_popularity_hh(languages))
+    pprint.pprint(get_languages_popularity_sj(languages))
 
-pprint.pprint(languages_popularity_hh)
-
-
-url_sj = 'https://api.superjob.ru/2.0/vacancies/'
-
-headers = {
-    'X-Api-App-Id': 'v3.r.132228763.49539bb63c4ceef06bdbfbd37374931114a7ef2f.9a1749bd9364951dfa0e2e5fbe7602c0e58109f3'
-}
-
-languages_popularity_sj = {}
-
-for language in languages:
-    #print(language)
-    payload = {
-        'town': '4',
-        'catalogues': '48',
-        'keywords[0][keys]': 'Программист',
-        'keywords[0][srws]': 1,
-        'keywords[1][keys]': language,
-        'keywords[1][srws]': 1,
-        'keywords[1][skwc]': 'and',
-    }
-    response = requests.get(url_sj, params=payload, headers=headers)
-    response.raise_for_status()
-
-    vacancy_salaries = []
-    for vacancy in fetch_vacancies_sj(language):
-        vacancy_salaries.append(predict_rub_salary_sj(vacancy))
-    vacancy_salaries_wo_none = list(filter(None, vacancy_salaries))
-    if vacancy_salaries_wo_none:
-        mean_salary = int(mean(vacancy_salaries_wo_none))
-    else:
-        mean_salary = None
-    languages_popularity_sj[language] = {
-        'vacancies_found': response.json()['total'],
-        'vacancies_processed': len(vacancy_salaries_wo_none),
-        'average_salary': mean_salary
-    }
-
-pprint.pprint(languages_popularity_sj)
