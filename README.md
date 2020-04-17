@@ -1,6 +1,6 @@
-# Language Salary
+# Programming vacancies compare
 
-The script shows average salaries for programmers from HH and SuperJob.
+The script shows average salaries for programmers. It takes data from HH and SuperJob.
 
 ### How to install
 
