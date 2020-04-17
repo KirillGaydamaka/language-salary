@@ -1,13 +1,15 @@
 import requests
-import pprint
 from statistics import mean
 from itertools import count
+from terminaltables import AsciiTable
+from dotenv import load_dotenv
+import os
 
 
 def predict_salary(salary_from, salary_to):
     if (not salary_from) or (salary_from == 0):
         return salary_to * 0.8
-    if (not salary_to) or (salary_to):
+    if (not salary_to) or salary_to:
         return salary_from * 1.2
     return (salary_from + salary_to) / 2
 
@@ -69,7 +71,6 @@ def fetch_vacancies_sj(language):
 def get_languages_popularity_hh(languages):
     languages_popularity = {}
     for language in languages:
-        print(language)
         payload = {
             'text': 'Программист {}'.format(language),
             'search_field': 'name',
@@ -122,7 +123,23 @@ def get_languages_popularity_sj(languages):
     return languages_popularity
 
 
+def make_table(language_popularity, title):
+    table_data = [
+        ['Язык программирования', 'Вакансий найдено', 'Вакансий обработано', 'Средняя зарплата']
+        ]
+    for language in language_popularity:
+        table_data.append([
+            language,
+            language_popularity[language]['vacancies_found'],
+            language_popularity[language]['vacancies_processed'],
+            language_popularity[language]['average_salary']])
+    table = AsciiTable(table_data, title)
+    return table
+
+
 if __name__ == '__main__':
+    load_dotenv()
+
     languages = [
         'JavaScript',
         'Java',
@@ -139,14 +156,15 @@ if __name__ == '__main__':
         'TypeScript',
     ]
 
-    headers_sj = {
-        'X-Api-App-Id':
-            'v3.r.132228763.49539bb63c4ceef06bdbfbd37374931114a7ef2f.9a1749bd9364951dfa0e2e5fbe7602c0e58109f3'
-    }
+    app_id = os.getenv('APP_ID')
+    headers_sj = {'X-Api-App-Id': app_id}
 
     url_sj = 'https://api.superjob.ru/2.0/vacancies/'
     url_hh = 'https://api.hh.ru/vacancies'
 
-    pprint.pprint(get_languages_popularity_hh(languages))
-    pprint.pprint(get_languages_popularity_sj(languages))
+    languages_popularity_hh = get_languages_popularity_hh(languages)
+    languages_popularity_sj = get_languages_popularity_sj(languages)
+
+    print(make_table(languages_popularity_hh, "HeadHunter Moscow").table)
+    print(make_table(languages_popularity_sj, "SuperJob Moscow").table)
 
