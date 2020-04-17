@@ -16,9 +16,8 @@ def predict_rub_salary(vacancy):
     return (salary['from'] + salary['to']) / 2
 
 
-def fetch_records(language):
+def fetch_vacancies(language):
     for page in count():
-        print(page)
         payload = {
             'text': 'Программист {}'.format(language),
             'search_field': 'name',
@@ -66,7 +65,7 @@ for language in languages:
     response.raise_for_status()
 
     vacancy_salaries = []
-    for vacancy in fetch_records(language):
+    for vacancy in fetch_vacancies(language):
         vacancy_salaries.append(predict_rub_salary(vacancy))
 
     vacancy_salaries_wo_none = list(filter(None, vacancy_salaries))
